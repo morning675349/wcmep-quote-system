@@ -9,6 +9,16 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "奇策整合行銷 | 報價管理系統",
   description: "WCMEP 報價與客戶管理系統",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
