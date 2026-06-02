@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getQuote, getClient, updateQuoteStatus, deleteQuote, convertToContract } from '@/lib/firestore'
 import { Quote, Client, QuoteStatus, QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS } from '@/types'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import { formatDate, formatCurrency, buildPdfFileName } from '@/lib/utils'
 import { ArrowLeft, Edit2, Download, History, ChevronRight, Trash2, FileText, FileSignature } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -62,7 +62,7 @@ export default function QuoteDetailPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${quote.quoteNumber}.pdf`
+      a.download = buildPdfFileName(client.companyName, quote.projectName, quote.createdAt, quote.versionLabel)
       a.click()
       URL.revokeObjectURL(url)
       toast.success('PDF 已下載')

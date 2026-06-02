@@ -20,6 +20,22 @@ export function formatDate(dateStr: string): string {
   }
 }
 
+export function buildPdfFileName(
+  companyName: string,
+  projectName: string,
+  dateStr: string,
+  versionLabel: string
+): string {
+  const safe = (s: string) => (s || '').replace(/[/\\?%*:|"<>]/g, '').trim()
+  let datePart = ''
+  try {
+    datePart = format(new Date(dateStr), 'yyyyMMdd')
+  } catch {
+    datePart = ''
+  }
+  return `${safe(companyName)}-${safe(projectName)}-${datePart}-${versionLabel}.pdf`
+}
+
 export function generateQuoteNumber(clientCode: string): string {
   const date = format(new Date(), 'yyyyMMdd')
   const code = clientCode.trim().toUpperCase() || 'XX'
