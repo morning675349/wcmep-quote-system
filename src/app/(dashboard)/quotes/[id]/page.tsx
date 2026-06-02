@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getQuote, getClient, updateQuoteStatus, deleteQuote } from '@/lib/firestore'
+import { getQuote, getClient, updateQuoteStatus, deleteQuote, convertToContract } from '@/lib/firestore'
 import { Quote, Client, QuoteStatus, QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS } from '@/types'
 import { formatDate, formatCurrency } from '@/lib/utils'
-import { ArrowLeft, Edit2, Download, History, ChevronRight, Trash2, FileText } from 'lucide-react'
+import { ArrowLeft, Edit2, Download, History, ChevronRight, Trash2, FileText, FileSignature } from 'lucide-react'
 import { toast } from 'sonner'
 
 const STATUS_FLOW: QuoteStatus[] = ['draft', 'sent', 'signed', 'closed']
@@ -73,6 +73,18 @@ export default function QuoteDetailPage() {
     }
   }
 
+  const handleConvertToContract = async () => {
+    if (!quote) return
+    if (!confirm('確定要將此報價單開立為合約嗎？將帶入標準合約條款與付款期數，可再編輯調整。')) return
+    try {
+      await convertToContract(id)
+      toast.success('已開立合約，請編輯合約內容')
+      router.push(`/quotes/${id}/contract`)
+    } catch {
+      toast.error('開立合約失敗')
+    }
+  }
+
   const handleDelete = async () => {
     if (deleteInput !== 'DELETE') return
     setDeleting(true)
@@ -113,6 +125,9 @@ export default function QuoteDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-xl font-bold text-stone-800">{quote.projectName}</h1>
+              {quote.documentType === 'contract' && (
+                <span className="px-2 py-0.5 rounded text-xs font-bold bg-stone-800 text-white">合約</span>
+              )}
               <span className={`px-2 py-0.5 rounded text-xs font-medium ${QUOTE_STATUS_COLORS[quote.status]}`}>
                 {QUOTE_STATUS_LABELS[quote.status]}
               </span>
@@ -157,6 +172,21 @@ export default function QuoteDetailPage() {
             >
               <Edit2 size={14} /> 編輯
             </Link>
+            {quote.documentType === 'contract' ? (
+              <Link
+                href={`/quotes/${id}/contract`}
+                className="flex items-center gap-1.5 text-sm bg-stone-800 text-white px-3 py-2 rounded-lg hover:bg-stone-900"
+              >
+                <FileSignature size={14} /> 編輯合約
+              </Link>
+            ) : (quote.status === 'signed' || quote.status === 'closed') && (
+              <button
+                onClick={handleConvertToContract}
+                className="flex items-center gap-1.5 text-sm bg-stone-800 text-white px-3 py-2 rounded-lg hover:bg-stone-900"
+              >
+                <FileSignature size={14} /> 開立合約
+              </button>
+            )}
             <button
               onClick={() => { setShowDeleteModal(true); setDeleteInput('') }}
               className="flex items-center gap-1.5 text-sm border border-red-200 text-red-500 px-3 py-2 rounded-lg hover:bg-red-50"

@@ -1,3 +1,6 @@
+import type { Installment } from '@/data/contractTerms'
+export type { Installment }
+
 export type UserRole = 'admin' | 'staff'
 
 export interface AppUser {
@@ -88,6 +91,13 @@ export interface Quote {
   hasContractTerms: boolean
   parentQuoteId: string | null
   originalFileUrl?: string
+  // ── 合約專用欄位（documentType === 'contract' 時使用）──
+  documentType?: 'quote' | 'contract'
+  contractStartDate?: string
+  contractEndDate?: string
+  contractTerms?: string[]
+  installments?: Installment[]
+  signDate?: string
   createdAt: string
   updatedAt: string
   createdBy: string
@@ -100,6 +110,7 @@ export interface Client {
   clientCode: string
   contactPerson: string
   title: string
+  representative: string
   email: string
   phone: string
   address: string

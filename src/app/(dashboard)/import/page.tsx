@@ -73,7 +73,7 @@ export default function ImportPage() {
     try {
       let clientId = selectedClientId
       if (createNewClient || !clientId) {
-        clientId = await createClient({ ...parsed.client, notes: '（由 PDF 匯入建立）', clientCode: parsed.client.clientCode || '', createdBy: appUser?.uid || '' })
+        clientId = await createClient({ ...parsed.client, notes: '（由 PDF 匯入建立）', clientCode: parsed.client.clientCode || '', representative: '', createdBy: appUser?.uid || '' })
       }
       const quoteId = await createQuote({
         clientId,

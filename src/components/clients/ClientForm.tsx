@@ -20,6 +20,7 @@ export default function ClientForm({ initial, clientId, onSuccess }: Props) {
   const [form, setForm] = useState({
     companyName: initial?.companyName || '',
     clientCode: initial?.clientCode || '',
+    representative: initial?.representative || '',
     contactPerson: initial?.contactPerson || '',
     title: initial?.title || '',
     email: initial?.email || '',
@@ -58,7 +59,8 @@ export default function ClientForm({ initial, clientId, onSuccess }: Props) {
     { label: '公司名稱 *', key: 'companyName', placeholder: '例：台灣轉型創新協會', required: true },
     { label: '英文簡稱（報價單號用）', key: 'clientCode', placeholder: '例：ATIT、VOLAR、SL', required: false },
     { label: '統一編號', key: 'taxId', placeholder: '12345678' },
-    { label: '聯絡人', key: 'contactPerson', placeholder: '王晨安' },
+    { label: '負責人（合約用）', key: 'representative', placeholder: '例：周銘城' },
+    { label: '承辦人 / 聯絡人', key: 'contactPerson', placeholder: '王晨安' },
     { label: '職稱', key: 'title', placeholder: '執行長' },
     { label: 'Email', key: 'email', placeholder: 'contact@example.com' },
     { label: '電話', key: 'phone', placeholder: '0923-675-349' },

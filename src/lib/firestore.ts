@@ -169,6 +169,28 @@ export async function updateQuoteStatus(id: string, status: QuoteStatus): Promis
   await updateDoc(doc(db, 'quotes', id), { status, updatedAt: serverTimestamp() })
 }
 
+// 將報價單轉為合約：帶入預設合約條款、付款期數、起訖日
+export async function convertToContract(id: string): Promise<void> {
+  const snap = await getDoc(doc(db, 'quotes', id))
+  if (!snap.exists()) throw new Error('Quote not found')
+  const data = snap.data()
+  const { DEFAULT_CONTRACT_TERMS, buildDefaultInstallments } = await import('@/data/contractTerms')
+  const today = new Date()
+  const start = new Date(today); start.setDate(start.getDate() + 7)
+  const end = new Date(start); end.setFullYear(end.getFullYear() + 1); end.setDate(end.getDate() - 1)
+  const fmt = (d: Date) => `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`
+
+  await updateDoc(doc(db, 'quotes', id), {
+    documentType: 'contract',
+    contractTerms: DEFAULT_CONTRACT_TERMS,
+    installments: buildDefaultInstallments(data.total || 0),
+    contractStartDate: fmt(start),
+    contractEndDate: fmt(end),
+    signDate: fmt(today),
+    updatedAt: serverTimestamp(),
+  })
+}
+
 export async function deleteQuote(id: string): Promise<void> {
   await deleteDoc(doc(db, 'quotes', id))
 }

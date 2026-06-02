@@ -2,6 +2,7 @@ import { Quote, Client } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { LOGO_BASE64 } from './logoBase64'
+import { PARTY_B } from '@/data/contractTerms'
 
 function escapeHtml(str: string): string {
   return str
@@ -38,6 +39,8 @@ function formatItemDescription(item: { description?: string; notes?: string[] })
 export function generateQuoteHTML(quote: Quote, client: Client): string {
   const today = format(new Date(), 'yyyy年MM月dd日')
   const allStdPrice = quote.standardItems.reduce((s, i) => s + (i.price ?? 0), 0)
+  const isContract = quote.documentType === 'contract'
+  const docLabel = isContract ? '合約編號' : '報價單號'
 
   const renderItemRows = (items: typeof quote.standardItems, showGroup = false) => {
     let html = ''
@@ -154,6 +157,25 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
   .notes-list-main li { font-size: 13px; margin-bottom: 5px; color: #333; line-height: 1.6; }
   .notes-list-main li strong { color: #1a1a1a; }
 
+  /* Contract sections */
+  .contract-section { margin-top: 20px; }
+  .contract-heading { font-size: 15px; font-weight: 700; text-align: center; margin: 16px 0 10px; }
+  .contract-terms { padding-left: 20px; }
+  .contract-terms li { font-size: 11.5px; line-height: 1.7; margin-bottom: 6px; color: #222; text-align: justify; }
+  .pay-block { margin-top: 14px; border: 1px solid #e5e5e5; border-radius: 4px; padding: 12px 14px; background: #fafafa; }
+  .pay-intro { font-size: 12px; font-weight: 700; color: #b8860b; margin-bottom: 8px; }
+  .pay-row { display: flex; gap: 10px; margin-bottom: 8px; font-size: 11.5px; }
+  .pay-label { font-weight: 700; flex-shrink: 0; width: 70px; }
+  .pay-detail { flex: 1; line-height: 1.6; }
+  .pay-detail strong { color: #1a1a1a; }
+  /* Signature block */
+  .sign-section { margin-top: 22px; }
+  .sign-table { width: 100%; border-collapse: collapse; border: 1.5px solid #1a1a1a; }
+  .sign-cell { width: 50%; border: 1px solid #1a1a1a; padding: 12px 14px; vertical-align: top; }
+  .sign-row { font-size: 12px; margin-bottom: 7px; line-height: 1.5; }
+  .sign-key { font-weight: 700; }
+  .sign-date { text-align: center; font-weight: 700; font-size: 13px; margin-top: 12px; }
+
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page { padding: 14mm 15mm; }
@@ -170,7 +192,7 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
     <div class="tagline">一個奇妙策略，一條正確道路</div>
   </div>
   <div class="footer-line">
-    報價單號：${escapeHtml(quote.quoteNumber)} &nbsp;&nbsp; 日期：${today}
+    ${docLabel}：${escapeHtml(quote.quoteNumber)} &nbsp;&nbsp; 日期：${today}
   </div>
 
   <!-- Project title -->
@@ -279,7 +301,15 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
     </table>
   </div>` : ''}
 
-  <!-- Notes -->
+  ${isContract ? renderContractFooter(quote, client) : renderQuoteFooter(quote)}
+</div>
+</body>
+</html>`
+}
+
+// ── 報價單尾段：備註 + 簡易簽章 ──
+function renderQuoteFooter(quote: Quote): string {
+  return `
   <div class="notes-section">
     <div class="notes-title">備註項目：</div>
     <ul class="notes-list-main" style="padding-left:16px; list-style:disc;">
@@ -289,13 +319,68 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
       ${quote.notes ? `<li>${escapeHtml(quote.notes)}</li>` : ''}
     </ul>
   </div>
-
-  <!-- Signature area -->
-  <div style="margin-top: 24px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #888; display: flex; justify-content: space-between;">
+  <div style="margin-top: 24px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 11px; color: #888; display: flex; justify-content: space-between;">
     <div>客戶端訂購確認簽章：_______________</div>
     <div>奇策整合行銷 王晨安 Morning</div>
+  </div>`
+}
+
+// ── 合約尾段：合約條款 + 付款期數 + 立合約人 ──
+function renderContractFooter(quote: Quote, client: Client): string {
+  const start = quote.contractStartDate || '＿＿＿'
+  const end = quote.contractEndDate || '＿＿＿'
+  const terms = (quote.contractTerms || []).map(t =>
+    t.replace(/\{\{START\}\}/g, start).replace(/\{\{END\}\}/g, end)
+  )
+  const installments = quote.installments || []
+  const pctText = installments.map(i => `${i.percentage}%`).join('、')
+
+  const termsHtml = terms.map(t => `<li>${escapeHtml(t)}</li>`).join('')
+
+  const installmentsHtml = installments.length > 0 ? `
+    <div class="pay-block">
+      <div class="pay-intro">※甲方在此同意依下列條件總金額分 ${installments.length} 期支付費用共 ${formatCurrency(quote.total)}${pctText ? `，期間比例為 ${pctText}` : ''}。</div>
+      ${installments.map((inst, i) => `
+        <div class="pay-row">
+          <span class="pay-label">第${['一','二','三','四','五','六','七','八','九','十'][i] || (i + 1)}期款項</span>
+          <div class="pay-detail">
+            <div>新臺幣含稅：<strong>${formatCurrency(inst.amount)}</strong>（占 ${inst.percentage}%）</div>
+            <div>${escapeHtml(inst.timing)}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''
+
+  return `
+  <div class="contract-section">
+    <div class="contract-heading">合約條款事項</div>
+    <ol class="contract-terms">
+      ${termsHtml}
+    </ol>
+    ${installmentsHtml}
   </div>
-</div>
-</body>
-</html>`
+
+  <!-- 立合約人 -->
+  <div class="sign-section">
+    <table class="sign-table">
+      <tr>
+        <td class="sign-cell">
+          <div class="sign-row"><span class="sign-key">甲方：</span>${escapeHtml(client.companyName)}</div>
+          <div class="sign-row"><span class="sign-key">負責人：</span>${escapeHtml(client.representative || '')}</div>
+          <div class="sign-row"><span class="sign-key">統一編號：</span>${escapeHtml(client.taxId || '')}</div>
+          <div class="sign-row"><span class="sign-key">承辦人：</span>${escapeHtml(client.contactPerson || '')}</div>
+          <div class="sign-row"><span class="sign-key">電話：</span>${escapeHtml(client.phone || '')}</div>
+          <div class="sign-row"><span class="sign-key">地址：</span>${escapeHtml(client.address || '')}</div>
+        </td>
+        <td class="sign-cell">
+          <div class="sign-row"><span class="sign-key">乙方：</span>${PARTY_B.company}</div>
+          <div class="sign-row"><span class="sign-key">負責人：</span>${PARTY_B.representative}</div>
+          <div class="sign-row"><span class="sign-key">專案人員：</span>${PARTY_B.projectStaff}</div>
+          <div class="sign-row"><span class="sign-key">統一編號：</span>${PARTY_B.taxId}</div>
+          <div class="sign-row"><span class="sign-key">電話：</span>${PARTY_B.phone}</div>
+          <div class="sign-row"><span class="sign-key">地址：</span>${PARTY_B.address}</div>
+        </td>
+      </tr>
+    </table>
+    <div class="sign-date">－立合約人（簽約日期：西元 ${escapeHtml(quote.signDate || '＿＿＿')}）－</div>
+  </div>`
 }
