@@ -52,6 +52,7 @@ export interface QuoteItem {
   description: string
   notes?: string[]
   price: number | null
+  remark?: string
   category: ServiceItemCategory
   group?: string
   isCustom?: boolean

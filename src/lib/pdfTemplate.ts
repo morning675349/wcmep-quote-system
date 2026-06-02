@@ -133,10 +133,12 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
   .summary-section { margin-top: 18px; }
   .summary-title { background: #C9A84C; color: white; text-align: center; padding: 8px; font-weight: 700; font-size: 16px; }
   .summary-table { width: 100%; border-collapse: collapse; }
-  .summary-table td { border: 1px solid #ddd; padding: 7px 12px; font-size: 13px; }
-  .summary-label { width: 40%; color: #555; }
-  .summary-value { width: 40%; text-align: right; font-weight: 600; }
+  .summary-table td, .summary-table th { border: 1px solid #ddd; padding: 7px 12px; font-size: 13px; }
+  .summary-head th { background: #f5f5f5; color: #555; font-weight: 600; text-align: center; }
+  .summary-label { width: 45%; color: #555; }
+  .summary-value { width: 35%; text-align: right; font-weight: 600; }
   .summary-note { width: 20%; color: #888; font-size: 12px; }
+  .summary-total-cell { text-align: right; }
   .total-row td { font-size: 15px; font-weight: 700; }
   .discount-row td { color: #cc3333; }
   .total-amount { color: #C9A84C; font-size: 18px; font-weight: 900; }
@@ -217,40 +219,45 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
   <div class="summary-section">
     <div class="summary-title">費用 總覽表</div>
     <table class="summary-table">
-      <tr>
-        <td class="summary-label">網站設計服務</td>
-        <td class="summary-value">${formatCurrency(allStdPrice)}</td>
-        <td class="summary-note"></td>
-      </tr>
-      ${quote.optionalItems.filter(i => i.price).map(i => `
-      <tr>
-        <td class="summary-label">${escapeHtml(i.name)}</td>
-        <td class="summary-value">${formatCurrency(i.price)}</td>
-        <td class="summary-note"></td>
-      </tr>`).join('')}
-      <tr>
-        <td class="summary-label" colspan="2" style="text-align:right">
-          整體費用 <span class="${quote.discountAmount > 0 ? 'strikethrough' : ''}">${formatCurrency(quote.subtotal)}（未稅）</span>
-        </td>
-        <td class="summary-note"></td>
-      </tr>
-      ${quote.discountAmount > 0 ? `
-      <tr class="discount-row">
-        <td class="summary-label" colspan="2" style="text-align:right">
-          ${escapeHtml(quote.discountLabel || '優惠折扣')} ${formatCurrency(quote.subtotal - quote.discountAmount)}（未稅）
-        </td>
-        <td class="summary-note"></td>
-      </tr>` : ''}
-      <tr>
-        <td class="summary-label" colspan="2" style="text-align:right">稅金 ${formatCurrency(quote.taxAmount)}</td>
-        <td class="summary-note"></td>
-      </tr>
-      <tr class="total-row">
-        <td class="summary-label" colspan="2" style="text-align:right">
-          總計 <span class="total-amount">${formatCurrency(quote.total)}（含稅）</span>
-        </td>
-        <td class="summary-note"></td>
-      </tr>
+      <thead>
+        <tr class="summary-head">
+          <th class="summary-label">功能項目</th>
+          <th class="summary-value">單價（新臺幣未稅）</th>
+          <th class="summary-note">備註</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="summary-label">網站設計服務</td>
+          <td class="summary-value">${formatCurrency(allStdPrice)}</td>
+          <td class="summary-note"></td>
+        </tr>
+        ${quote.optionalItems.filter(i => i.price).map(i => `
+        <tr>
+          <td class="summary-label">${escapeHtml(i.name)}</td>
+          <td class="summary-value">${formatCurrency(i.price)}</td>
+          <td class="summary-note">${escapeHtml(i.remark || '')}</td>
+        </tr>`).join('')}
+        <tr>
+          <td class="summary-total-cell" colspan="3" style="text-align:right">
+            整體費用 <span class="${quote.discountAmount > 0 ? 'strikethrough' : ''}">${formatCurrency(quote.subtotal)}（未稅）</span>
+          </td>
+        </tr>
+        ${quote.discountAmount > 0 ? `
+        <tr class="discount-row">
+          <td class="summary-total-cell" colspan="3" style="text-align:right">
+            ${escapeHtml(quote.discountLabel || '優惠折扣')} ${formatCurrency(quote.subtotal - quote.discountAmount)}（未稅）
+          </td>
+        </tr>` : ''}
+        <tr>
+          <td class="summary-total-cell" colspan="3" style="text-align:right">稅金 ${formatCurrency(quote.taxAmount)}</td>
+        </tr>
+        <tr class="total-row">
+          <td class="summary-total-cell" colspan="3" style="text-align:right">
+            總計 <span class="total-amount">${formatCurrency(quote.total)}（含稅）</span>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </div>
 

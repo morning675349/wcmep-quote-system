@@ -253,6 +253,12 @@ export default function QuoteBuilder({ quoteId, mode = 'create' }: Props) {
                       {item.notes.map((n, i) => <li key={i} className="list-disc ml-3">{n}</li>)}
                     </ul>
                   )}
+                  <input
+                    value={item.remark || ''}
+                    onChange={e => updateItem(cat, item.id, 'remark', e.target.value)}
+                    placeholder="備註（選填，會顯示在費用總覽表）"
+                    className="w-full text-xs text-stone-500 border border-dashed border-stone-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 placeholder:text-stone-300"
+                  />
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="relative">
