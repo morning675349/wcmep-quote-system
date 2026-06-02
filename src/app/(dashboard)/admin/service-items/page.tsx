@@ -7,7 +7,7 @@ import {
 } from '@/lib/firestore'
 import { ServiceItemTemplate, ServiceItemCategory, CATEGORY_LABELS, CATEGORY_ORDER } from '@/types'
 import { SERVICE_GROUPS } from '@/data/serviceItems'
-import { Plus, Trash2, Edit2, Check, X, Download, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, Download, ArrowUp, ArrowDown, GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CATEGORY_COLORS: Record<ServiceItemCategory, string> = {
@@ -34,6 +34,8 @@ export default function ServiceItemsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [addForm, setAddForm] = useState({ ...BLANK })
   const [saving, setSaving] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   const load = async () => {
     const data = await getServiceItems()
@@ -95,7 +97,17 @@ export default function ServiceItemsPage() {
     finally { setSaving(false) }
   }
 
-  // Move an item up/down within its own category, persist the new order
+  // Persist a reordered category list (optimistic UI + Firestore write)
+  const applyOrder = async (category: ServiceItemCategory, reordered: ServiceItemTemplate[]) => {
+    const otherCats = items.filter(i => i.category !== category)
+    setItems([...otherCats, ...reordered].sort((a, b) =>
+      CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
+    ))
+    await reorderServiceItems(reordered.map(i => i.id))
+    load()
+  }
+
+  // Move an item up/down within its own category (arrow buttons)
   const move = async (item: ServiceItemTemplate, dir: -1 | 1) => {
     const sameCat = items.filter(i => i.category === item.category)
     const idx = sameCat.findIndex(i => i.id === item.id)
@@ -103,13 +115,24 @@ export default function ServiceItemsPage() {
     if (target < 0 || target >= sameCat.length) return
     const reordered = [...sameCat]
     ;[reordered[idx], reordered[target]] = [reordered[target], reordered[idx]]
-    // optimistic UI
-    const otherCats = items.filter(i => i.category !== item.category)
-    setItems([...otherCats, ...reordered].sort((a, b) =>
-      CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
-    ))
-    await reorderServiceItems(reordered.map(i => i.id))
-    load()
+    await applyOrder(item.category, reordered)
+  }
+
+  // Drag-and-drop reorder within a category
+  const handleDrop = async (target: ServiceItemTemplate) => {
+    if (!draggingId || draggingId === target.id) { setDraggingId(null); setDragOverId(null); return }
+    const dragged = items.find(i => i.id === draggingId)
+    if (!dragged || dragged.category !== target.category) {
+      setDraggingId(null); setDragOverId(null); return
+    }
+    const sameCat = items.filter(i => i.category === target.category)
+    const from = sameCat.findIndex(i => i.id === draggingId)
+    const to = sameCat.findIndex(i => i.id === target.id)
+    const reordered = [...sameCat]
+    const [moved] = reordered.splice(from, 1)
+    reordered.splice(to, 0, moved)
+    setDraggingId(null); setDragOverId(null)
+    await applyOrder(target.category, reordered)
   }
 
   return (
@@ -153,7 +176,7 @@ export default function ServiceItemsPage() {
         </div>
       )}
 
-      <p className="text-xs text-stone-400 mb-4">用 ↑ ↓ 調整項目在報價單選取器中的顯示順序（各分類獨立排序）</p>
+      <p className="text-xs text-stone-400 mb-4">拖曳項目（或用 ↑ ↓）調整在報價單選取器中的顯示順序，各分類獨立排序</p>
 
       {loading ? (
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-stone-100 rounded-xl animate-pulse" />)}</div>
@@ -187,22 +210,34 @@ export default function ServiceItemsPage() {
                         />
                       </div>
                     ) : (
-                      <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
-                        {/* Reorder arrows */}
+                      <div
+                        key={item.id}
+                        draggable
+                        onDragStart={() => setDraggingId(item.id)}
+                        onDragEnd={() => { setDraggingId(null); setDragOverId(null) }}
+                        onDragOver={e => { e.preventDefault(); if (dragOverId !== item.id) setDragOverId(item.id) }}
+                        onDrop={() => handleDrop(item)}
+                        className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                          draggingId === item.id ? 'opacity-40' : ''
+                        } ${dragOverId === item.id && draggingId !== item.id ? 'border-t-2 border-amber-400 bg-amber-50/40' : 'hover:bg-stone-50'}`}
+                      >
+                        {/* Drag handle */}
+                        <GripVertical size={15} className="text-stone-300 cursor-grab active:cursor-grabbing flex-shrink-0" />
+                        {/* Reorder arrows (fallback) */}
                         <div className="flex flex-col flex-shrink-0">
                           <button
                             onClick={() => move(item, -1)}
                             disabled={idx === 0}
                             className="text-stone-300 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed"
                           >
-                            <ArrowUp size={13} />
+                            <ArrowUp size={12} />
                           </button>
                           <button
                             onClick={() => move(item, 1)}
                             disabled={idx === catItems.length - 1}
                             className="text-stone-300 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed"
                           >
-                            <ArrowDown size={13} />
+                            <ArrowDown size={12} />
                           </button>
                         </div>
                         <div className="flex-1 min-w-0">
