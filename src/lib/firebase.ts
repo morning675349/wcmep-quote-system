@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore, getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -12,9 +12,14 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+const isNew = getApps().length === 0
+const app = isNew ? initializeApp(firebaseConfig) : getApps()[0]
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// ignoreUndefinedProperties lets us save objects with optional/undefined fields
+// (e.g. custom quote items without notes) without Firestore throwing.
+export const db = isNew
+  ? initializeFirestore(app, { ignoreUndefinedProperties: true })
+  : getFirestore(app)
 export const storage = getStorage(app)
 export default app

@@ -82,11 +82,14 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${quote.quoteNumber}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   @page { size: A4; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: auto; }
-  body { font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif; font-size: 14px; color: #1a1a1a; background: white; line-height: 1.6; }
+  body { font-family: 'Noto Sans TC', 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif; font-size: 14px; color: #1a1a1a; background: white; line-height: 1.6; }
   .page { width: 210mm; padding: 16mm 15mm; margin: 0 auto; }
 
   /* Header */

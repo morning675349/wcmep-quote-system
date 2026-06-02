@@ -7,6 +7,7 @@ export const maxDuration = 60
 interface BrowserPage {
   setContent: (h: string, o: unknown) => Promise<void>
   addStyleTag: (o: unknown) => Promise<unknown>
+  evaluate: (fn: unknown) => Promise<unknown>
   pdf: (o: unknown) => Promise<Buffer>
 }
 interface BrowserInstance {
@@ -66,6 +67,9 @@ export async function POST(
       html, body { height: auto !important; overflow: visible !important; }
       @page { margin: 0; size: A4; }
     `})
+
+    // Wait for web fonts (Noto Sans TC) to finish loading before rendering
+    await page.evaluate('document.fonts.ready')
 
     const pdf = await page.pdf({
       format: 'A4',
