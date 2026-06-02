@@ -250,7 +250,7 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
           </td>
         </tr>` : ''}
         <tr>
-          <td class="summary-total-cell" colspan="3" style="text-align:right">稅金 ${formatCurrency(quote.taxAmount)}</td>
+          <td class="summary-total-cell" colspan="3" style="text-align:right">稅金 5% ${formatCurrency(quote.taxAmount)}</td>
         </tr>
         <tr class="total-row">
           <td class="summary-total-cell" colspan="3" style="text-align:right">
