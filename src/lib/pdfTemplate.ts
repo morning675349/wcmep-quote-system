@@ -198,7 +198,7 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
   <!-- Project title -->
   <div class="project-title">
     <h1>專案名稱：${escapeHtml(client.companyName)}</h1>
-    <h2>${escapeHtml(quote.projectName)}</h2>
+    <h2>【${escapeHtml(quote.projectName)}】</h2>
   </div>
 
   <!-- Party info -->
