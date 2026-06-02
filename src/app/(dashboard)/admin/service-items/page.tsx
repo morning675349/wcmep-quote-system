@@ -3,18 +3,13 @@
 import { useEffect, useState } from 'react'
 import {
   getServiceItems, createServiceItem, updateServiceItem,
-  deleteServiceItem, seedServiceItemsIfEmpty
+  deleteServiceItem, seedServiceItemsIfEmpty, reorderServiceItems
 } from '@/lib/firestore'
-import { ServiceItemTemplate, ServiceItemCategory } from '@/types'
+import { ServiceItemTemplate, ServiceItemCategory, CATEGORY_LABELS, CATEGORY_ORDER } from '@/types'
 import { SERVICE_GROUPS } from '@/data/serviceItems'
-import { Plus, Trash2, Edit2, Check, X, Download } from 'lucide-react'
+import { Plus, Trash2, Edit2, Check, X, Download, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 
-const CATEGORY_LABELS: Record<ServiceItemCategory, string> = {
-  standard: '制式',
-  optional: '選配',
-  bonus: '贈送',
-}
 const CATEGORY_COLORS: Record<ServiceItemCategory, string> = {
   standard: 'bg-stone-100 text-stone-600',
   optional: 'bg-blue-50 text-blue-600',
@@ -39,7 +34,6 @@ export default function ServiceItemsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [addForm, setAddForm] = useState({ ...BLANK })
   const [saving, setSaving] = useState(false)
-  const [groupFilter, setGroupFilter] = useState<string>('全部')
 
   const load = async () => {
     const data = await getServiceItems()
@@ -101,8 +95,22 @@ export default function ServiceItemsPage() {
     finally { setSaving(false) }
   }
 
-  const allGroups = ['全部', ...Array.from(new Set([...SERVICE_GROUPS, ...items.map(i => i.group)]))]
-  const filtered = items.filter(i => groupFilter === '全部' || i.group === groupFilter)
+  // Move an item up/down within its own category, persist the new order
+  const move = async (item: ServiceItemTemplate, dir: -1 | 1) => {
+    const sameCat = items.filter(i => i.category === item.category)
+    const idx = sameCat.findIndex(i => i.id === item.id)
+    const target = idx + dir
+    if (target < 0 || target >= sameCat.length) return
+    const reordered = [...sameCat]
+    ;[reordered[idx], reordered[target]] = [reordered[target], reordered[idx]]
+    // optimistic UI
+    const otherCats = items.filter(i => i.category !== item.category)
+    setItems([...otherCats, ...reordered].sort((a, b) =>
+      CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
+    ))
+    await reorderServiceItems(reordered.map(i => i.id))
+    load()
+  }
 
   return (
     <div>
@@ -145,85 +153,81 @@ export default function ServiceItemsPage() {
         </div>
       )}
 
-      {/* Group filter tabs */}
-      <div className="flex gap-1 flex-wrap mb-4">
-        {allGroups.map(g => (
-          <button
-            key={g}
-            onClick={() => setGroupFilter(g)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              groupFilter === g ? 'bg-amber-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-            }`}
-          >
-            {g}
-          </button>
-        ))}
-      </div>
+      <p className="text-xs text-stone-400 mb-4">用 ↑ ↓ 調整項目在報價單選取器中的顯示順序（各分類獨立排序）</p>
 
       {loading ? (
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-stone-100 rounded-xl animate-pulse" />)}</div>
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="bg-white rounded-xl border border-stone-200 p-12 text-center">
-          <p className="text-stone-400 text-sm">
-            {items.length === 0 ? '尚無項目，點「匯入預設項目」快速建立' : '此分類無項目'}
-          </p>
+          <p className="text-stone-400 text-sm">尚無項目，點「匯入預設項目」快速建立</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-stone-50 border-b border-stone-200">
-                <th className="text-left px-5 py-3 text-stone-600 font-medium w-32">分類</th>
-                <th className="text-left px-5 py-3 text-stone-600 font-medium">項目名稱</th>
-                <th className="text-left px-5 py-3 text-stone-600 font-medium w-24">群組</th>
-                <th className="text-right px-5 py-3 text-stone-600 font-medium w-28">預設金額</th>
-                <th className="px-5 py-3 w-24" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {filtered.map(item => (
-                editingId === item.id ? (
-                  <tr key={item.id} className="bg-amber-50">
-                    <td colSpan={5} className="px-5 py-4">
-                      <ItemForm
-                        form={editForm as Omit<ServiceItemTemplate, 'id'>}
-                        onChange={setEditForm}
-                        onSave={handleSaveEdit}
-                        onCancel={cancelEdit}
-                        saving={saving}
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={item.id} className="hover:bg-stone-50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLORS[item.category]}`}>
-                        {CATEGORY_LABELS[item.category]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="font-medium text-stone-700">{item.name}</div>
-                      {item.description && <div className="text-xs text-stone-400 mt-0.5 line-clamp-1">{item.description}</div>}
-                    </td>
-                    <td className="px-5 py-3.5 text-stone-500 text-xs">{item.group}</td>
-                    <td className="px-5 py-3.5 text-right text-stone-600">
-                      {item.defaultPrice ? `NT$${item.defaultPrice.toLocaleString()}` : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => startEdit(item)} className="text-stone-300 hover:text-amber-600 transition-colors">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(item.id, item.name)} className="text-stone-300 hover:text-red-500 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
+        <div className="space-y-6">
+          {CATEGORY_ORDER.map(cat => {
+            const catItems = items.filter(i => i.category === cat)
+            if (catItems.length === 0) return null
+            return (
+              <div key={cat}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`inline-block px-2.5 py-1 rounded text-xs font-semibold ${CATEGORY_COLORS[cat]}`}>
+                    {CATEGORY_LABELS[cat]}
+                  </span>
+                  <span className="text-xs text-stone-400">{catItems.length} 項</span>
+                </div>
+                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden divide-y divide-stone-100">
+                  {catItems.map((item, idx) => (
+                    editingId === item.id ? (
+                      <div key={item.id} className="bg-amber-50 p-4">
+                        <ItemForm
+                          form={editForm as Omit<ServiceItemTemplate, 'id'>}
+                          onChange={setEditForm}
+                          onSave={handleSaveEdit}
+                          onCancel={cancelEdit}
+                          saving={saving}
+                        />
                       </div>
-                    </td>
-                  </tr>
-                )
-              ))}
-            </tbody>
-          </table>
+                    ) : (
+                      <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 transition-colors">
+                        {/* Reorder arrows */}
+                        <div className="flex flex-col flex-shrink-0">
+                          <button
+                            onClick={() => move(item, -1)}
+                            disabled={idx === 0}
+                            className="text-stone-300 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            onClick={() => move(item, 1)}
+                            disabled={idx === catItems.length - 1}
+                            className="text-stone-300 hover:text-amber-600 disabled:opacity-20 disabled:cursor-not-allowed"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-stone-700">{item.name}</div>
+                          {item.description && <div className="text-xs text-stone-400 mt-0.5 line-clamp-1">{item.description}</div>}
+                        </div>
+                        <div className="text-stone-400 text-xs flex-shrink-0 w-20">{item.group}</div>
+                        <div className="text-stone-600 text-right flex-shrink-0 w-24">
+                          {item.defaultPrice ? `NT$${item.defaultPrice.toLocaleString()}` : '—'}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={() => startEdit(item)} className="text-stone-300 hover:text-amber-600 transition-colors">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleDelete(item.id, item.name)} className="text-stone-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

@@ -5,10 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getClients, getQuote, createQuote, updateQuote, getServiceItems, createServiceItem, seedServiceItemsIfEmpty } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import { Client, Quote, QuoteItem, ServiceItemCategory, ServiceItemTemplate } from '@/types'
-import { SERVICE_GROUPS } from '@/data/serviceItems'
 import { calcTotals, formatCurrency, generateQuoteNumber, incrementVersionLabel } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Plus, Trash2, ChevronDown, ChevronUp, GripVertical, BookmarkPlus } from 'lucide-react'
+import { Plus, Trash2, GripVertical, BookmarkPlus } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Props {
@@ -65,7 +64,6 @@ export default function QuoteBuilder({ quoteId, mode = 'create' }: Props) {
   const [standardItems, setStandardItems] = useState<QuoteItem[]>([])
   const [optionalItems, setOptionalItems] = useState<QuoteItem[]>([])
   const [bonusItems, setBonusItems] = useState<QuoteItem[]>([])
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [originalQuote, setOriginalQuote] = useState<Quote | null>(null)
 
   const setItems = (cat: SectionKey, items: QuoteItem[]) => {
@@ -209,11 +207,11 @@ export default function QuoteBuilder({ quoteId, mode = 'create' }: Props) {
     }
   }
 
-  const allGroups = Array.from(new Set([...SERVICE_GROUPS, ...templates.map(t => t.group)])).filter(Boolean)
-  const templatesByGroup = allGroups.map(group => ({
-    group,
-    templates: templates.filter(t => t.group === group),
-  })).filter(g => g.templates.length > 0)
+  // Group templates by category (制式/選配/贈送); items already sorted by sortOrder from Firestore
+  const templatesByCategory = (['standard', 'optional', 'bonus'] as SectionKey[]).map(cat => ({
+    cat,
+    items: templates.filter(t => t.category === cat),
+  })).filter(g => g.items.length > 0)
 
   const renderItemsSection = (cat: SectionKey) => {
     const items = getItems(cat)
@@ -294,51 +292,44 @@ export default function QuoteBuilder({ quoteId, mode = 'create' }: Props) {
       <div className="col-span-1 space-y-3">
         <div className="bg-white rounded-xl border border-stone-200 p-4">
           <h3 className="font-semibold text-stone-700 text-sm mb-3">從服務項目庫選取</h3>
-          <div className="space-y-2">
-            {templatesByGroup.map(({ group, templates }) => {
-              const isOpen = openGroups[group] ?? true
+          <div className="space-y-3">
+            {templatesByCategory.map(({ cat, items: catTemplates }) => {
+              const headerColor = cat === 'standard' ? 'bg-stone-100 text-stone-700'
+                : cat === 'optional' ? 'bg-blue-50 text-blue-700'
+                : 'bg-amber-50 text-amber-700'
+              const label = cat === 'standard' ? '制式項目' : cat === 'optional' ? '選配項目' : '額外贈送項目'
               return (
-                <div key={group} className="border border-stone-100 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setOpenGroups(g => ({ ...g, [group]: !isOpen }))}
-                    className="w-full flex items-center justify-between px-3 py-2 bg-stone-50 text-xs font-medium text-stone-600 hover:bg-stone-100"
-                  >
-                    {group}
-                    {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                  </button>
-                  {isOpen && (
-                    <div className="p-2 space-y-1">
-                      {templates.map(t => {
-                        const cat = t.category as SectionKey
-                        const items = getItems(cat)
-                        const selected = items.some(i => i.id === t.id || i.name === t.name)
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => toggleTemplateItem(t.id, t.category)}
-                            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                              selected
-                                ? 'bg-amber-100 text-amber-800 font-medium'
-                                : 'text-stone-600 hover:bg-stone-100'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                t.category === 'standard' ? 'bg-stone-400' :
-                                t.category === 'optional' ? 'bg-blue-400' : 'bg-amber-400'
-                              }`} />
-                              {t.name}
+                <div key={cat} className="border border-stone-100 rounded-lg overflow-hidden">
+                  <div className={`px-3 py-2 text-xs font-semibold ${headerColor}`}>
+                    {label}
+                  </div>
+                  <div className="p-2 space-y-1">
+                    {catTemplates.map(t => {
+                      const items = getItems(cat)
+                      const selected = items.some(i => i.id === t.id || i.name === t.name)
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => toggleTemplateItem(t.id, t.category)}
+                          className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                            selected
+                              ? 'bg-amber-100 text-amber-800 font-medium'
+                              : 'text-stone-600 hover:bg-stone-100'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{t.name}</span>
+                            {selected && <span className="text-amber-600 flex-shrink-0">✓</span>}
+                          </div>
+                          {t.defaultPrice && (
+                            <div className="text-stone-400 mt-0.5">
+                              {formatCurrency(t.defaultPrice)}
                             </div>
-                            {t.defaultPrice && (
-                              <div className="text-stone-400 mt-0.5 ml-3">
-                                {formatCurrency(t.defaultPrice)}
-                              </div>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )
             })}

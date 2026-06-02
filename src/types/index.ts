@@ -35,7 +35,16 @@ export interface ServiceItemTemplate {
   defaultPrice: number | null
   category: ServiceItemCategory
   group: string
+  sortOrder?: number
 }
+
+export const CATEGORY_LABELS: Record<ServiceItemCategory, string> = {
+  standard: '制式項目',
+  optional: '選配項目',
+  bonus: '額外贈送項目',
+}
+
+export const CATEGORY_ORDER: ServiceItemCategory[] = ['standard', 'optional', 'bonus']
 
 export interface QuoteItem {
   id: string

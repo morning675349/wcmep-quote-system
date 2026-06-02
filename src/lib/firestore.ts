@@ -176,11 +176,24 @@ export async function deleteQuote(id: string): Promise<void> {
 // ============================================================
 // SERVICE ITEMS LIBRARY
 // ============================================================
+const CAT_RANK: Record<string, number> = { standard: 0, optional: 1, bonus: 2 }
+
 export async function getServiceItems(): Promise<ServiceItemTemplate[]> {
   const snap = await getDocs(collection(db, 'serviceItems'))
   return snap.docs
     .map(d => ({ ...d.data(), id: d.id } as ServiceItemTemplate))
-    .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
+    .sort((a, b) =>
+      (CAT_RANK[a.category] ?? 9) - (CAT_RANK[b.category] ?? 9) ||
+      (a.sortOrder ?? 999) - (b.sortOrder ?? 999) ||
+      a.name.localeCompare(b.name)
+    )
+}
+
+// Persist a new ordering: write sequential sortOrder to each item
+export async function reorderServiceItems(orderedIds: string[]): Promise<void> {
+  await Promise.all(
+    orderedIds.map((id, idx) => updateDoc(doc(db, 'serviceItems', id), { sortOrder: idx }))
+  )
 }
 
 export async function createServiceItem(data: Omit<ServiceItemTemplate, 'id'>): Promise<string> {
