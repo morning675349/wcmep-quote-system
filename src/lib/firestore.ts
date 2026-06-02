@@ -28,7 +28,7 @@ const toDate = (v: unknown): string => {
 // ============================================================
 export async function getUsers(): Promise<AppUser[]> {
   const snap = await getDocs(collection(db, 'users'))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as AppUser))
+  return snap.docs.map(d => ({ uid: d.id, ...d.data() } as AppUser))
 }
 
 export async function getUser(uid: string): Promise<AppUser | null> {

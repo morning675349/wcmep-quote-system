@@ -171,6 +171,7 @@ export default function QuoteBuilder({ quoteId, mode = 'create' }: Props) {
         taxAmount, subtotal, total,
         notes, status: originalQuote?.status || 'draft' as const,
         standardItems, optionalItems, bonusItems,
+        hasContractTerms: originalQuote?.hasContractTerms ?? false,
         parentQuoteId: originalQuote?.parentQuoteId || null,
         createdBy: appUser?.uid || '',
       }
