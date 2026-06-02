@@ -1,0 +1,291 @@
+import { Quote, Client } from '@/types'
+import { formatCurrency } from '@/lib/utils'
+import { format } from 'date-fns'
+import { LOGO_BASE64 } from './logoBase64'
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function formatItemDescription(item: { description?: string; notes?: string[] }): string {
+  const parts: string[] = []
+  if (item.description) {
+    const lines = item.description.split('\n').filter(Boolean)
+    lines.forEach(line => {
+      if (line.startsWith('・')) {
+        parts.push(`<li>${escapeHtml(line.slice(1).trim())}</li>`)
+      } else {
+        parts.push(`<p class="desc-text">${escapeHtml(line)}</p>`)
+      }
+    })
+  }
+  if (item.notes && item.notes.length > 0) {
+    item.notes.forEach(n => parts.push(`<li>${escapeHtml(n)}</li>`))
+  }
+  if (parts.some(p => p.startsWith('<li'))) {
+    return parts
+      .map(p => p.startsWith('<li') ? p : p)
+      .join('')
+      .replace(/(<li>.*?<\/li>)/gs, (match) => match)
+  }
+  return parts.join('')
+}
+
+export function generateQuoteHTML(quote: Quote, client: Client): string {
+  const today = format(new Date(), 'yyyy年MM月dd日')
+  const allStdPrice = quote.standardItems.reduce((s, i) => s + (i.price ?? 0), 0)
+
+  const renderItemRows = (items: typeof quote.standardItems, showGroup = false) => {
+    let html = ''
+    let lastGroup = ''
+    for (const item of items) {
+      if (showGroup && item.group && item.group !== lastGroup) {
+        lastGroup = item.group
+      }
+      const descHtml = formatItemDescription(item)
+      const hasListItems = descHtml.includes('<li>')
+      html += `
+        <tr>
+          <td class="item-name">${escapeHtml(item.name)}</td>
+          <td class="item-desc">
+            ${item.description ? `<p class="desc-text">${escapeHtml(item.description.split('\n')[0])}</p>` : ''}
+            ${hasListItems ? `<ul class="notes-list">${descHtml.match(/<li>.*?<\/li>/gs)?.join('') || ''}</ul>` : ''}
+          </td>
+          <td class="item-price">${item.price ? formatCurrency(item.price) : ''}</td>
+        </tr>`
+    }
+    return html
+  }
+
+  const renderBonusRows = (items: typeof quote.bonusItems) => {
+    return items.map(item => {
+      const descHtml = formatItemDescription(item)
+      return `
+        <tr>
+          <td class="item-name bonus-name">${escapeHtml(item.name)}</td>
+          <td class="item-desc">
+            ${item.description ? `<p class="desc-text">${escapeHtml(item.description)}</p>` : ''}
+            ${descHtml.includes('<li>') ? `<ul class="notes-list">${descHtml.match(/<li>.*?<\/li>/gs)?.join('') || ''}</ul>` : ''}
+          </td>
+          <td class="item-price bonus-value">${item.price ? `價值\n${formatCurrency(item.price)}` : ''}</td>
+        </tr>`
+    }).join('')
+  }
+
+  return `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${quote.quoteNumber}</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: auto; }
+  body { font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: white; }
+  .page { width: 210mm; padding: 18mm 16mm; margin: 0 auto; }
+
+  /* Header */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 6px; }
+  .logo-area { display: flex; flex-direction: column; }
+  .logo-main { font-size: 20px; font-weight: 900; letter-spacing: 4px; color: #1a1a1a; }
+  .logo-sub { font-size: 8px; letter-spacing: 3px; color: #888; margin-top: 2px; }
+  .tagline { font-size: 10px; color: #888; letter-spacing: 1px; }
+  .footer-line { font-size: 8px; color: #888; text-align: right; margin-bottom: 16px; }
+
+  /* Project title */
+  .project-title { text-align: center; margin: 16px 0 8px; }
+  .project-title h1 { font-size: 16px; font-weight: 900; }
+  .project-title h2 { font-size: 13px; font-weight: 700; margin-top: 4px; }
+
+  /* Party table */
+  .party-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #333; }
+  .party-table td { padding: 6px 10px; border: 1px solid #333; font-size: 10px; vertical-align: top; }
+  .party-table .party-header { font-weight: 700; font-size: 11px; background: #f5f5f5; }
+  .party-name-bold { font-weight: 700; }
+
+  /* Section heading */
+  .section-heading { font-size: 12px; font-weight: 700; margin: 16px 0 6px; }
+
+  /* Items table */
+  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .items-table th { background: #C9A84C; color: white; padding: 6px 10px; text-align: left; font-size: 10px; font-weight: 600; }
+  .items-table th.price-col { text-align: center; width: 90px; }
+  .items-table td { padding: 7px 10px; border: 1px solid #ddd; vertical-align: top; font-size: 9.5px; }
+  .items-table tr:nth-child(even) td { background: #fafafa; }
+  .item-name { font-weight: 700; font-size: 10px; width: 130px; color: #C9A84C; vertical-align: top; }
+  .item-desc { font-size: 9px; color: #333; line-height: 1.5; }
+  .item-price { text-align: center; font-weight: 600; width: 90px; vertical-align: middle; white-space: nowrap; }
+  .desc-text { margin-bottom: 3px; }
+  .notes-list { padding-left: 14px; margin-top: 3px; }
+  .notes-list li { margin-bottom: 2px; font-size: 8.5px; color: #555; }
+  .bonus-name { color: #C9A84C; }
+  .bonus-value { font-size: 8.5px; color: #C9A84C; text-align: center; white-space: pre-line; }
+
+  /* Summary table */
+  .summary-section { margin-top: 16px; }
+  .summary-title { background: #C9A84C; color: white; text-align: center; padding: 6px; font-weight: 700; font-size: 12px; }
+  .summary-table { width: 100%; border-collapse: collapse; }
+  .summary-table td { border: 1px solid #ddd; padding: 5px 10px; font-size: 10px; }
+  .summary-label { width: 40%; color: #555; }
+  .summary-value { width: 40%; text-align: right; font-weight: 600; }
+  .summary-note { width: 20%; color: #888; font-size: 8.5px; }
+  .total-row td { font-size: 11px; font-weight: 700; }
+  .discount-row td { color: #cc3333; }
+  .total-amount { color: #C9A84C; font-size: 13px; font-weight: 900; }
+  .strikethrough { text-decoration: line-through; color: #888; }
+
+  /* Bonus section */
+  .bonus-section { margin-top: 16px; }
+  .bonus-title { font-size: 14px; font-weight: 900; color: #C9A84C; text-align: center; margin-bottom: 8px; }
+
+  /* Notes */
+  .notes-section { margin-top: 16px; }
+  .notes-title { font-weight: 700; font-size: 11px; margin-bottom: 6px; }
+  .notes-list-main li { font-size: 9.5px; margin-bottom: 4px; color: #333; }
+  .notes-list-main li strong { color: #1a1a1a; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { padding: 12mm 14mm; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-area">
+      <img src="${LOGO_BASE64}" alt="奇策整合行銷" style="height:48px; width:auto; object-fit:contain;" />
+    </div>
+    <div class="tagline">一個奇妙策略，一條正確道路</div>
+  </div>
+  <div class="footer-line">
+    報價單號：${escapeHtml(quote.quoteNumber)} &nbsp;&nbsp; 日期：${today}
+  </div>
+
+  <!-- Project title -->
+  <div class="project-title">
+    <h1>專案名稱：${escapeHtml(client.companyName)}</h1>
+    <h2>${escapeHtml(quote.projectName)}</h2>
+  </div>
+
+  <!-- Party info -->
+  <table class="party-table">
+    <tr>
+      <td class="party-header" style="width:50%">甲方&nbsp;&nbsp;${escapeHtml(client.companyName)}</td>
+      <td class="party-header" style="width:50%">乙方&nbsp;&nbsp;奇策整合行銷有限公司</td>
+    </tr>
+    <tr>
+      <td>
+        <div class="party-name-bold">聯絡人：${escapeHtml(client.contactPerson)} ${escapeHtml(client.title || '')}</div>
+        <div>Email：${escapeHtml(client.email)}</div>
+        <div>電話：${escapeHtml(client.phone)}</div>
+      </td>
+      <td>
+        <div class="party-name-bold">聯絡人：王晨安 Morning</div>
+        <div>Email：morning@wcmep.com.tw</div>
+        <div>電話：0923-675-349</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Standard + Optional items -->
+  ${(quote.standardItems.length > 0 || quote.optionalItems.length > 0) ? `
+  <div class="section-heading">一、${escapeHtml(quote.serviceType)}</div>
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th style="width:130px">項目</th>
+        <th>說明</th>
+        <th class="price-col">金額（未稅）</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${renderItemRows([...quote.standardItems, ...quote.optionalItems])}
+    </tbody>
+  </table>` : ''}
+
+  <!-- Summary -->
+  <div class="summary-section">
+    <div class="summary-title">費用 總覽表</div>
+    <table class="summary-table">
+      <tr>
+        <td class="summary-label">網站設計服務</td>
+        <td class="summary-value">${formatCurrency(allStdPrice)}</td>
+        <td class="summary-note"></td>
+      </tr>
+      ${quote.optionalItems.filter(i => i.price).map(i => `
+      <tr>
+        <td class="summary-label">${escapeHtml(i.name)}</td>
+        <td class="summary-value">${formatCurrency(i.price)}</td>
+        <td class="summary-note"></td>
+      </tr>`).join('')}
+      <tr>
+        <td class="summary-label" colspan="2" style="text-align:right">
+          整體費用 <span class="${quote.discountAmount > 0 ? 'strikethrough' : ''}">${formatCurrency(quote.subtotal)}（未稅）</span>
+        </td>
+        <td class="summary-note"></td>
+      </tr>
+      ${quote.discountAmount > 0 ? `
+      <tr class="discount-row">
+        <td class="summary-label" colspan="2" style="text-align:right">
+          ${escapeHtml(quote.discountLabel || '優惠折扣')} ${formatCurrency(quote.subtotal - quote.discountAmount)}（未稅）
+        </td>
+        <td class="summary-note"></td>
+      </tr>` : ''}
+      <tr>
+        <td class="summary-label" colspan="2" style="text-align:right">稅金 ${formatCurrency(quote.taxAmount)}</td>
+        <td class="summary-note"></td>
+      </tr>
+      <tr class="total-row">
+        <td class="summary-label" colspan="2" style="text-align:right">
+          總計 <span class="total-amount">${formatCurrency(quote.total)}（含稅）</span>
+        </td>
+        <td class="summary-note"></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Bonus items -->
+  ${quote.bonusItems.length > 0 ? `
+  <div class="bonus-section">
+    <div class="bonus-title">額外贈送項目</div>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th style="width:130px">項目</th>
+          <th>說明</th>
+          <th class="price-col">金額</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${renderBonusRows(quote.bonusItems)}
+      </tbody>
+    </table>
+  </div>` : ''}
+
+  <!-- Notes -->
+  <div class="notes-section">
+    <div class="notes-title">備註項目：</div>
+    <ul class="notes-list-main" style="padding-left:16px; list-style:disc;">
+      <li>本報價單經雙方簽章用印即正式生效。</li>
+      <li>本公司保留專案承接與否之最終權利。</li>
+      <li>本報價單有效期限為報價日期起算一個月。</li>
+      ${quote.notes ? `<li>${escapeHtml(quote.notes)}</li>` : ''}
+    </ul>
+  </div>
+
+  <!-- Signature area -->
+  <div style="margin-top: 24px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #888; display: flex; justify-content: space-between;">
+    <div>客戶端訂購確認簽章：_______________</div>
+    <div>奇策整合行銷 王晨安 Morning</div>
+  </div>
+</div>
+</body>
+</html>`
+}
