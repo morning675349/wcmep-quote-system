@@ -86,72 +86,72 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
   @page { size: A4; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: auto; }
-  body { font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: white; }
-  .page { width: 210mm; padding: 18mm 16mm; margin: 0 auto; }
+  body { font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif; font-size: 14px; color: #1a1a1a; background: white; line-height: 1.6; }
+  .page { width: 210mm; padding: 16mm 15mm; margin: 0 auto; }
 
   /* Header */
-  .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 6px; }
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 6px; }
   .logo-area { display: flex; flex-direction: column; }
-  .logo-main { font-size: 20px; font-weight: 900; letter-spacing: 4px; color: #1a1a1a; }
-  .logo-sub { font-size: 8px; letter-spacing: 3px; color: #888; margin-top: 2px; }
-  .tagline { font-size: 10px; color: #888; letter-spacing: 1px; }
-  .footer-line { font-size: 8px; color: #888; text-align: right; margin-bottom: 16px; }
+  .logo-main { font-size: 24px; font-weight: 900; letter-spacing: 4px; color: #1a1a1a; }
+  .logo-sub { font-size: 10px; letter-spacing: 3px; color: #888; margin-top: 2px; }
+  .tagline { font-size: 13px; color: #888; letter-spacing: 1px; }
+  .footer-line { font-size: 11px; color: #888; text-align: right; margin-bottom: 18px; }
 
   /* Project title */
-  .project-title { text-align: center; margin: 16px 0 8px; }
-  .project-title h1 { font-size: 16px; font-weight: 900; }
-  .project-title h2 { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  .project-title { text-align: center; margin: 18px 0 10px; }
+  .project-title h1 { font-size: 20px; font-weight: 900; }
+  .project-title h2 { font-size: 16px; font-weight: 700; margin-top: 5px; }
 
   /* Party table */
-  .party-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #333; }
-  .party-table td { padding: 6px 10px; border: 1px solid #333; font-size: 10px; vertical-align: top; }
-  .party-table .party-header { font-weight: 700; font-size: 11px; background: #f5f5f5; }
+  .party-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; border: 1px solid #333; }
+  .party-table td { padding: 8px 12px; border: 1px solid #333; font-size: 13px; vertical-align: top; }
+  .party-table .party-header { font-weight: 700; font-size: 14px; background: #f5f5f5; }
   .party-name-bold { font-weight: 700; }
 
   /* Section heading */
-  .section-heading { font-size: 12px; font-weight: 700; margin: 16px 0 6px; }
+  .section-heading { font-size: 16px; font-weight: 700; margin: 18px 0 8px; }
 
   /* Items table */
-  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  .items-table th { background: #C9A84C; color: white; padding: 6px 10px; text-align: left; font-size: 10px; font-weight: 600; }
-  .items-table th.price-col { text-align: center; width: 90px; }
-  .items-table td { padding: 7px 10px; border: 1px solid #ddd; vertical-align: top; font-size: 9.5px; }
+  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  .items-table th { background: #C9A84C; color: white; padding: 9px 12px; text-align: left; font-size: 14px; font-weight: 600; }
+  .items-table th.price-col { text-align: center; width: 110px; }
+  .items-table td { padding: 10px 12px; border: 1px solid #ddd; vertical-align: top; font-size: 13px; }
   .items-table tr:nth-child(even) td { background: #fafafa; }
-  .item-name { font-weight: 700; font-size: 10px; width: 130px; color: #C9A84C; vertical-align: top; }
-  .item-desc { font-size: 9px; color: #333; line-height: 1.5; }
-  .item-price { text-align: center; font-weight: 600; width: 90px; vertical-align: middle; white-space: nowrap; }
-  .desc-text { margin-bottom: 3px; }
-  .notes-list { padding-left: 14px; margin-top: 3px; }
-  .notes-list li { margin-bottom: 2px; font-size: 8.5px; color: #555; }
+  .item-name { font-weight: 700; font-size: 14px; width: 140px; color: #C9A84C; vertical-align: top; }
+  .item-desc { font-size: 12.5px; color: #333; line-height: 1.7; }
+  .item-price { text-align: center; font-weight: 600; width: 110px; vertical-align: middle; white-space: nowrap; font-size: 13px; }
+  .desc-text { margin-bottom: 4px; }
+  .notes-list { padding-left: 18px; margin-top: 4px; }
+  .notes-list li { margin-bottom: 3px; font-size: 12px; color: #555; line-height: 1.6; }
   .bonus-name { color: #C9A84C; }
-  .bonus-value { font-size: 8.5px; color: #C9A84C; text-align: center; white-space: pre-line; }
+  .bonus-value { font-size: 12px; color: #C9A84C; text-align: center; white-space: pre-line; }
 
   /* Summary table */
-  .summary-section { margin-top: 16px; }
-  .summary-title { background: #C9A84C; color: white; text-align: center; padding: 6px; font-weight: 700; font-size: 12px; }
+  .summary-section { margin-top: 18px; }
+  .summary-title { background: #C9A84C; color: white; text-align: center; padding: 8px; font-weight: 700; font-size: 16px; }
   .summary-table { width: 100%; border-collapse: collapse; }
-  .summary-table td { border: 1px solid #ddd; padding: 5px 10px; font-size: 10px; }
+  .summary-table td { border: 1px solid #ddd; padding: 7px 12px; font-size: 13px; }
   .summary-label { width: 40%; color: #555; }
   .summary-value { width: 40%; text-align: right; font-weight: 600; }
-  .summary-note { width: 20%; color: #888; font-size: 8.5px; }
-  .total-row td { font-size: 11px; font-weight: 700; }
+  .summary-note { width: 20%; color: #888; font-size: 12px; }
+  .total-row td { font-size: 15px; font-weight: 700; }
   .discount-row td { color: #cc3333; }
-  .total-amount { color: #C9A84C; font-size: 13px; font-weight: 900; }
+  .total-amount { color: #C9A84C; font-size: 18px; font-weight: 900; }
   .strikethrough { text-decoration: line-through; color: #888; }
 
   /* Bonus section */
-  .bonus-section { margin-top: 16px; }
-  .bonus-title { font-size: 14px; font-weight: 900; color: #C9A84C; text-align: center; margin-bottom: 8px; }
+  .bonus-section { margin-top: 18px; }
+  .bonus-title { font-size: 18px; font-weight: 900; color: #C9A84C; text-align: center; margin-bottom: 10px; }
 
   /* Notes */
-  .notes-section { margin-top: 16px; }
-  .notes-title { font-weight: 700; font-size: 11px; margin-bottom: 6px; }
-  .notes-list-main li { font-size: 9.5px; margin-bottom: 4px; color: #333; }
+  .notes-section { margin-top: 18px; }
+  .notes-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+  .notes-list-main li { font-size: 13px; margin-bottom: 5px; color: #333; line-height: 1.6; }
   .notes-list-main li strong { color: #1a1a1a; }
 
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .page { padding: 12mm 14mm; }
+    .page { padding: 14mm 15mm; }
   }
 </style>
 </head>
