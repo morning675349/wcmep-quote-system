@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getQuote, getClient, updateQuoteStatus, deleteQuote, convertToContract } from '@/lib/firestore'
-import { Quote, Client, QuoteStatus, QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS } from '@/types'
+import { getQuote, getClient, updateQuoteStatus, updateQuote, deleteQuote, convertToContract } from '@/lib/firestore'
+import { Quote, Client, QuoteStatus, QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS, STATUS_FLOW } from '@/types'
 import { formatDate, formatCurrency, buildPdfFileName } from '@/lib/utils'
-import { ArrowLeft, Edit2, Download, History, ChevronRight, Trash2, FileText, FileSignature } from 'lucide-react'
+import { ArrowLeft, Edit2, Download, History, ChevronRight, Trash2, FileText, FileSignature, Rocket } from 'lucide-react'
 import { toast } from 'sonner'
-
-const STATUS_FLOW: QuoteStatus[] = ['draft', 'sent', 'signed', 'closed']
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -38,10 +36,45 @@ export default function QuoteDetailPage() {
 
   const handleStatusChange = async (status: QuoteStatus) => {
     if (!quote) return
+
+    // 進到「開立合約」：若尚未轉為合約，先轉換（帶入合約預設內容、解鎖合約 PDF 上傳）
+    if (status === 'contract_issued' && quote.documentType !== 'contract') {
+      if (!confirm('進入「開立合約」會將此案件轉為合約，並帶入預設合約內容（可再編輯或上傳合約 PDF）。確定嗎？')) return
+      setUpdatingStatus(true)
+      try {
+        await convertToContract(id)
+        await updateQuoteStatus(id, status)
+        toast.success('已開立合約')
+        await load()
+      } catch {
+        toast.error('開立合約失敗')
+      } finally {
+        setUpdatingStatus(false)
+      }
+      return
+    }
+
+    // 進到「已結案」：請填上線日期（供後續維護／續約追蹤）
+    if (status === 'closed') {
+      const input = window.prompt('請輸入上線日期（供後續維護／續約追蹤）\n例：2026年06月15日', quote.launchDate || '')
+      if (input === null) return // 取消則不變更狀態
+      setUpdatingStatus(true)
+      try {
+        await updateQuote(id, { status, launchDate: input.trim() })
+        toast.success(`已結案${input.trim() ? `，上線日期 ${input.trim()}` : ''}`)
+        await load()
+      } catch {
+        toast.error('更新失敗')
+      } finally {
+        setUpdatingStatus(false)
+      }
+      return
+    }
+
     setUpdatingStatus(true)
     await updateQuoteStatus(id, status)
     toast.success(`狀態已更新：${QUOTE_STATUS_LABELS[status]}`)
-    load()
+    await load()
     setUpdatingStatus(false)
   }
 
@@ -70,18 +103,6 @@ export default function QuoteDetailPage() {
       toast.error(err instanceof Error ? err.message : 'PDF 產生失敗，請重試')
     } finally {
       setDownloading(false)
-    }
-  }
-
-  const handleConvertToContract = async () => {
-    if (!quote) return
-    if (!confirm('確定要將此報價單開立為合約嗎？將帶入標準合約條款與付款期數，可再編輯調整。')) return
-    try {
-      await convertToContract(id)
-      toast.success('已開立合約，請編輯合約內容')
-      router.push(`/quotes/${id}/contract`)
-    } catch {
-      toast.error('開立合約失敗')
     }
   }
 
@@ -141,6 +162,11 @@ export default function QuoteDetailPage() {
             <div className="text-xs text-stone-400 mt-1">
               建立於 {formatDate(quote.createdAt)} · 更新於 {formatDate(quote.updatedAt)}
             </div>
+            {quote.launchDate && (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 mt-2 w-fit">
+                <Rocket size={12} /> 上線日期 {quote.launchDate}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {quote.originalFileUrl && (
@@ -183,20 +209,13 @@ export default function QuoteDetailPage() {
             >
               <Edit2 size={14} /> 編輯
             </Link>
-            {quote.documentType === 'contract' ? (
+            {quote.documentType === 'contract' && (
               <Link
                 href={`/quotes/${id}/contract`}
                 className="flex items-center gap-1.5 text-sm bg-stone-800 text-white px-3 py-2 rounded-lg hover:bg-stone-900"
               >
                 <FileSignature size={14} /> 編輯合約
               </Link>
-            ) : (quote.status === 'signed' || quote.status === 'closed') && (
-              <button
-                onClick={handleConvertToContract}
-                className="flex items-center gap-1.5 text-sm bg-stone-800 text-white px-3 py-2 rounded-lg hover:bg-stone-900"
-              >
-                <FileSignature size={14} /> 開立合約
-              </button>
             )}
             <button
               onClick={() => { setShowDeleteModal(true); setDeleteInput('') }}
@@ -208,7 +227,7 @@ export default function QuoteDetailPage() {
         </div>
 
         {/* Status stepper */}
-        <div className="mt-5 flex items-center gap-2">
+        <div className="mt-5 flex items-center gap-2 flex-wrap gap-y-2">
           {STATUS_FLOW.map((s, i) => {
             const isPast = i <= currentStatusIndex
             const isCurrent = i === currentStatusIndex

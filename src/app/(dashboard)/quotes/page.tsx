@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getQuotes, getClients } from '@/lib/firestore'
-import { Quote, Client, QuoteStatus, QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS } from '@/types'
+import { Quote, Client, QuoteStatus, QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS, STATUS_FLOW } from '@/types'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { Plus, Search } from 'lucide-react'
 
@@ -37,10 +37,10 @@ export default function QuotesPage() {
 
   const statusTabs: Array<{ key: QuoteStatus | 'all'; label: string }> = [
     { key: 'all', label: `全部（${quotes.length}）` },
-    { key: 'draft', label: `開立中（${quotes.filter(q => q.status === 'draft').length}）` },
-    { key: 'sent', label: `等待簽回（${quotes.filter(q => q.status === 'sent').length}）` },
-    { key: 'signed', label: `已簽回（${quotes.filter(q => q.status === 'signed').length}）` },
-    { key: 'closed', label: `已結案（${quotes.filter(q => q.status === 'closed').length}）` },
+    ...STATUS_FLOW.map(s => ({
+      key: s,
+      label: `${QUOTE_STATUS_LABELS[s]}（${quotes.filter(q => q.status === s).length}）`,
+    })),
   ]
 
   return (

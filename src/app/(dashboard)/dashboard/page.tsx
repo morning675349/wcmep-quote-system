@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getDashboardStats } from '@/lib/firestore'
-import { DashboardStats } from '@/types'
+import { DashboardStats, STATUS_FLOW, QUOTE_STATUS_LABELS } from '@/types'
 import Link from 'next/link'
-import { FileText, Users, Clock, CheckCircle, PenLine, Archive } from 'lucide-react'
+import { FileText, Users, PenLine, CheckCircle, FileSignature, FileCheck, Loader, Archive } from 'lucide-react'
 
 export default function DashboardPage() {
   const { appUser } = useAuth()
@@ -15,14 +15,26 @@ export default function DashboardPage() {
     getDashboardStats().then(setStats)
   }, [])
 
+  const STATUS_META: Record<string, { icon: typeof FileText; color: string }> = {
+    draft: { icon: PenLine, color: 'bg-gray-50 text-gray-700' },
+    quote_signed: { icon: CheckCircle, color: 'bg-sky-50 text-sky-700' },
+    contract_issued: { icon: FileSignature, color: 'bg-indigo-50 text-indigo-700' },
+    contract_signed: { icon: FileCheck, color: 'bg-violet-50 text-violet-700' },
+    in_progress: { icon: Loader, color: 'bg-amber-50 text-amber-700' },
+    closed: { icon: Archive, color: 'bg-emerald-50 text-emerald-700' },
+  }
+
   const cards = stats
     ? [
         { label: '客戶總數', value: stats.totalClients, icon: Users, color: 'bg-stone-100 text-stone-700', href: '/clients' },
         { label: '所有報價單', value: stats.totalQuotes, icon: FileText, color: 'bg-blue-50 text-blue-700', href: '/quotes' },
-        { label: '開立中', value: stats.draftQuotes, icon: PenLine, color: 'bg-gray-50 text-gray-700', href: '/quotes?status=draft' },
-        { label: '等待簽回', value: stats.sentQuotes, icon: Clock, color: 'bg-blue-50 text-blue-700', href: '/quotes?status=sent' },
-        { label: '已簽回', value: stats.signedQuotes, icon: CheckCircle, color: 'bg-green-50 text-green-700', href: '/quotes?status=signed' },
-        { label: '已結案', value: stats.closedQuotes, icon: Archive, color: 'bg-amber-50 text-amber-700', href: '/quotes?status=closed' },
+        ...STATUS_FLOW.map(s => ({
+          label: QUOTE_STATUS_LABELS[s],
+          value: stats.byStatus[s] ?? 0,
+          icon: STATUS_META[s].icon,
+          color: STATUS_META[s].color,
+          href: `/quotes?status=${s}`,
+        })),
       ]
     : []
 

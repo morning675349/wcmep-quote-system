@@ -14,7 +14,7 @@ import {
   setDoc,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Client, Quote, QuoteVersion, AppUser, QuoteStatus, ServiceItemTemplate } from '@/types'
+import { Client, Quote, QuoteVersion, AppUser, QuoteStatus, ServiceItemTemplate, STATUS_FLOW, normalizeStatus } from '@/types'
 
 // ---- Helpers ----
 const toDate = (v: unknown): string => {
@@ -98,6 +98,7 @@ export async function getQuotes(): Promise<Quote[]> {
   return snap.docs.map(d => ({
     ...d.data(),
     id: d.id,
+    status: normalizeStatus(d.data().status),
     createdAt: toDate(d.data().createdAt),
     updatedAt: toDate(d.data().updatedAt),
   } as Quote))
@@ -110,6 +111,7 @@ export async function getQuotesByClient(clientId: string): Promise<Quote[]> {
   return snap.docs.map(d => ({
     ...d.data(),
     id: d.id,
+    status: normalizeStatus(d.data().status),
     createdAt: toDate(d.data().createdAt),
     updatedAt: toDate(d.data().updatedAt),
   } as Quote))
@@ -133,6 +135,7 @@ export async function getQuote(id: string): Promise<Quote | null> {
   return {
     ...data,
     id: snap.id,
+    status: normalizeStatus(data.status),
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
     versions,
@@ -247,12 +250,11 @@ export async function seedServiceItemsIfEmpty(): Promise<void> {
 // ============================================================
 export async function getDashboardStats() {
   const [clients, quotes] = await Promise.all([getClients(), getQuotes()])
+  const byStatus = Object.fromEntries(STATUS_FLOW.map(s => [s, 0])) as Record<QuoteStatus, number>
+  quotes.forEach(q => { byStatus[q.status] = (byStatus[q.status] || 0) + 1 })
   return {
     totalClients: clients.length,
     totalQuotes: quotes.length,
-    draftQuotes: quotes.filter(q => q.status === 'draft').length,
-    sentQuotes: quotes.filter(q => q.status === 'sent').length,
-    signedQuotes: quotes.filter(q => q.status === 'signed').length,
-    closedQuotes: quotes.filter(q => q.status === 'closed').length,
+    byStatus,
   }
 }
