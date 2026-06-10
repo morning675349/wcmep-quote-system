@@ -61,6 +61,15 @@ export interface QuoteItem {
   isCustom?: boolean
 }
 
+export interface ContractFile {
+  url: string
+  path: string
+  name: string
+  size: number
+  uploadedAt: string
+  uploadedBy?: string
+}
+
 export interface QuoteVersion {
   id: string
   versionNumber: string
@@ -98,6 +107,7 @@ export interface Quote {
   contractTerms?: string[]
   installments?: Installment[]
   signDate?: string
+  contractFiles?: ContractFile[]
   createdAt: string
   updatedAt: string
   createdBy: string

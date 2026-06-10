@@ -153,13 +153,24 @@ export default function QuoteDetailPage() {
                 <FileText size={14} /> 原始檔案
               </a>
             )}
-            <button
-              onClick={handleDownloadPDF}
-              disabled={downloading}
-              className="flex items-center gap-1.5 text-sm border border-stone-200 px-3 py-2 rounded-lg text-stone-600 hover:bg-stone-50 disabled:opacity-50"
-            >
-              <Download size={14} /> {downloading ? '產生中...' : '下載 PDF'}
-            </button>
+            {quote.documentType === 'contract' && (quote.contractFiles?.length ?? 0) > 0 ? (
+              <a
+                href={quote.contractFiles![quote.contractFiles!.length - 1].url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm bg-amber-600 text-white px-3 py-2 rounded-lg hover:bg-amber-700"
+              >
+                <FileText size={14} /> 合約 PDF
+              </a>
+            ) : (
+              <button
+                onClick={handleDownloadPDF}
+                disabled={downloading}
+                className="flex items-center gap-1.5 text-sm border border-stone-200 px-3 py-2 rounded-lg text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+              >
+                <Download size={14} /> {downloading ? '產生中...' : '下載 PDF'}
+              </button>
+            )}
             <button
               onClick={() => setShowHistory(!showHistory)}
               className="flex items-center gap-1.5 text-sm border border-stone-200 px-3 py-2 rounded-lg text-stone-600 hover:bg-stone-50"
