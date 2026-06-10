@@ -119,7 +119,7 @@ export function generateQuoteHTML(quote: Quote, client: Client): string {
 
   /* Items table */
   .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-  .items-table th { background: #C9A84C; color: white; padding: 9px 12px; text-align: left; font-size: 14px; font-weight: 600; }
+  .items-table th { background: #C9A84C; color: white; padding: 9px 12px; text-align: left; font-size: 14px; font-weight: 600; border: 1px solid #b8973f; }
   .items-table th.price-col { text-align: center; width: 110px; }
   .items-table td { padding: 10px 12px; border: 1px solid #ddd; vertical-align: top; font-size: 13px; }
   .items-table tr:nth-child(even) td { background: #fafafa; }
